@@ -1,6 +1,6 @@
 # TX Investigation Agent
 
-An AI-powered payment investigation agent built with [Embabel Agent Framework](https://embabel.com) and Spring Boot. It correlates data from multiple microservices (orchestrator, compliance, blockchain, ledger) to produce structured investigation reports for cross-border stablecoin payments.
+An AI-powered payment investigation agent built with [Embabel Agent Framework](https://embabel.com) and Spring Boot. It correlates data from 7 sources — microservice APIs, Temporal workflow history, Elasticsearch logs, and Jaeger distributed traces — to produce structured investigation reports for cross-border stablecoin payments.
 
 ## Architecture
 
@@ -9,23 +9,26 @@ The agent follows **hexagonal architecture** with strict layer isolation enforce
 ```
 src/main/java/com/stablebridge/txinvestigation/
 ├── agent/                          # Embabel GOAP agent layer
-│   ├── InvestigationAgent.java     #   7 GOAP actions (2 LLM + 4 fetch + 1 format)
+│   ├── InvestigationAgent.java     #   10 GOAP actions (2 LLM + 7 fetch + 1 format)
 │   └── InvestigationPersonas.java  #   Senior Investigator persona
 ├── application/controller/         # REST API layer
 │   ├── InvestigationController.java
 │   ├── InvestigationRequest.java
 │   └── InvestigationResponse.java
 ├── domain/                         # Pure domain — no framework deps
-│   ├── model/                      #   12 records, 5 enums, 2 exceptions
-│   ├── port/                       #   4 provider interfaces
+│   ├── model/                      #   19 records, 6 enums, 2 exceptions
+│   ├── port/                       #   7 provider interfaces
 │   └── service/                    #   ReportFormatter
 ├── infrastructure/                 # Adapters & config
 │   ├── blockchain/                 #   BlockchainAdapter (WebClient)
 │   ├── compliance/                 #   ComplianceAdapter (WebClient)
 │   ├── config/                     #   ServiceProperties, WebClientConfig
 │   ├── ledger/                     #   LedgerAdapter (WebClient)
+│   ├── elasticsearch/              #   ElasticsearchAdapter (WebClient POST)
 │   ├── mock/                       #   MockAdaptersConfig (@ConditionalOnMissingBean)
-│   └── orchestrator/               #   OrchestratorAdapter (WebClient)
+│   ├── orchestrator/               #   OrchestratorAdapter (WebClient)
+│   ├── temporal/                   #   TemporalAdapter (WebClient)
+│   └── tracing/                    #   TracingAdapter (WebClient)
 └── shell/                          # Spring Shell interactive CLI
     └── InvestigationCommands.java
 ```
@@ -42,29 +45,32 @@ src/main/java/com/stablebridge/txinvestigation/
 
 ### GOAP Agent Pipeline
 
-The Embabel agent uses [Goal-Oriented Action Planning](https://embabel.com/docs/snapshot/concepts/goap/) to chain 7 actions:
+The Embabel agent uses [Goal-Oriented Action Planning](https://embabel.com/docs/snapshot/concepts/goap/) to chain 10 actions:
 
 ```
 UserInput
   │
   ▼
-parseQuery (LLM)         → InvestigationQuery
+parseQuery (LLM)            → InvestigationQuery
   │
-  ├─► fetchPaymentState   → PaymentState          (S1 Orchestrator)
-  ├─► fetchComplianceStatus → ComplianceSnapshot   (S2 Compliance)
-  ├─► fetchBlockchainStatus → BlockchainSnapshot   (S4 Blockchain)
-  └─► fetchLedgerEntries   → LedgerSnapshot        (S7 Ledger)
+  ├─► fetchPaymentState      → PaymentState          (S1 Orchestrator)
+  ├─► fetchComplianceStatus  → ComplianceSnapshot    (S2 Compliance)
+  ├─► fetchBlockchainStatus  → BlockchainSnapshot    (S4 Blockchain)
+  ├─► fetchLedgerEntries     → LedgerSnapshot        (S7 Ledger)
+  ├─► fetchWorkflowHistory   → WorkflowSnapshot      (Temporal)
+  ├─► searchErrorLogs        → LogSnapshot           (Elasticsearch)
+  └─► fetchTrace             → TraceSnapshot         (Jaeger)
   │
   ▼
-analyzeTimeline (LLM)    → InvestigationReport     (Senior Investigator persona)
+analyzeTimeline (LLM)       → InvestigationReport    (Senior Investigator persona)
   │
   ▼
 formatReport (@AchievesGoal) → CompletedInvestigation
 ```
 
 - **`parseQuery`** — LLM extracts payment ID, merchant ID, and corridor from natural language input
-- **4 fetch actions** — parallel data collection from microservice APIs via hexagonal ports
-- **`analyzeTimeline`** — LLM with Senior Investigator persona correlates events, identifies root cause, produces findings with severity/category
+- **7 fetch actions** — parallel data collection from microservice APIs + observability systems via hexagonal ports
+- **`analyzeTimeline`** — LLM with Senior Investigator persona correlates events across all 7 data sources, identifies root cause, produces findings with severity/category
 - **`formatReport`** — assembles the final report with markdown timeline, findings, and recommendations
 
 ### Domain Model
@@ -76,8 +82,11 @@ formatReport (@AchievesGoal) → CompletedInvestigation
 | `ComplianceSnapshot` | Screening result, travel rule status, risk score, decisions |
 | `BlockchainSnapshot` | TX hash, chain, confirmations, amount, sender/receiver |
 | `LedgerSnapshot` | Ledger entries, net position, settlement status |
+| `WorkflowSnapshot` | Temporal workflow execution: events, activities, retries, task queue |
+| `LogSnapshot` | Elasticsearch error/warn logs: entries, stack traces, trace correlation |
+| `TraceSnapshot` | Jaeger distributed trace: spans, latency, service-level errors |
 | `InvestigationReport` | LLM-generated: severity, root cause, timeline, findings, recommendations |
-| `CompletedInvestigation` | Final assembly of all data + formatted markdown report |
+| `CompletedInvestigation` | Final assembly of all 7 data sources + formatted markdown report |
 
 ### Finding Categories
 
@@ -89,6 +98,9 @@ formatReport (@AchievesGoal) → CompletedInvestigation
 | `SETTLEMENT_MISMATCH` | Ledger balance discrepancy |
 | `SLA_BREACH` | Processing time exceeded SLA |
 | `RECONCILIATION_GAP` | Cross-service data inconsistency |
+| `WORKFLOW_FAILURE` | Temporal activity failure or timeout |
+| `ERROR_SPIKE` | High error rate detected in logs |
+| `LATENCY_ANOMALY` | Abnormal span duration in traces |
 
 ### Severity Levels
 
@@ -105,7 +117,7 @@ formatReport (@AchievesGoal) → CompletedInvestigation
 ### Build & Test
 
 ```bash
-# Run all tests (31 unit + 3 integration)
+# Run all tests (43 unit + 3 integration)
 ./gradlew check
 
 # Unit tests only
@@ -126,6 +138,9 @@ ORCHESTRATOR_URL=http://localhost:8081 \
 COMPLIANCE_URL=http://localhost:8082 \
 BLOCKCHAIN_URL=http://localhost:8083 \
 LEDGER_URL=http://localhost:8084 \
+TEMPORAL_URL=http://localhost:7233 \
+ELASTICSEARCH_URL=http://localhost:9200 \
+TRACING_URL=http://localhost:16686 \
 ./gradlew bootRun
 ```
 
@@ -191,6 +206,12 @@ app:
       base-url: ${BLOCKCHAIN_URL:http://localhost:8083}
     ledger:
       base-url: ${LEDGER_URL:http://localhost:8084}
+    temporal:
+      base-url: ${TEMPORAL_URL:http://localhost:7233}
+    elasticsearch:
+      base-url: ${ELASTICSEARCH_URL:http://localhost:9200}
+    tracing:
+      base-url: ${TRACING_URL:http://localhost:16686}
 ```
 
 ### Mock Adapters
@@ -205,6 +226,9 @@ When no live service is available, `MockAdaptersConfig` provides fallback implem
 | `app.services.compliance.enabled=true` | `ComplianceAdapter` (WebClient) |
 | `app.services.blockchain.enabled=true` | `BlockchainAdapter` (WebClient) |
 | `app.services.ledger.enabled=true` | `LedgerAdapter` (WebClient) |
+| `app.services.temporal.enabled=true` | `TemporalAdapter` (WebClient) |
+| `app.services.elasticsearch.enabled=true` | `ElasticsearchAdapter` (WebClient POST) |
+| `app.services.tracing.enabled=true` | `TracingAdapter` (WebClient) |
 | No real adapter present | `MockAdaptersConfig` fallback |
 
 ## Tech Stack
@@ -226,27 +250,30 @@ When no live service is available, `MockAdaptersConfig` provides fallback implem
 
 ## Test Suite
 
-**34 tests** across 3 categories:
+**46 tests** across 3 categories:
 
-### Unit Tests (31)
+### Unit Tests (43)
 
 | Test Class | Tests | What It Covers |
 |------------|-------|----------------|
 | `ArchitectureTest` | 7 | Hexagonal layer isolation rules |
-| `InvestigationAgentTest` | 5 | Agent actions with mocked ports and LLM |
+| `InvestigationAgentTest` | 8 | Agent actions with mocked ports (7 fetch + formatReport) |
 | `ReportFormatterTest` | 4 | Markdown report generation |
 | `OrchestratorAdapterTest` | 3 | WireMock — success, 404, 500 |
 | `ComplianceAdapterTest` | 3 | WireMock — success, 404, 500 |
 | `BlockchainAdapterTest` | 3 | WireMock — success, 404, 500 |
 | `LedgerAdapterTest` | 3 | WireMock — success, 404, 500 |
+| `TemporalAdapterTest` | 3 | WireMock — workflow history, 404, 500 |
+| `ElasticsearchAdapterTest` | 3 | WireMock — search, index-not-found, 500 |
+| `TracingAdapterTest` | 3 | WireMock — trace fetch, empty, 500 |
 | `InvestigationControllerTest` | 2 | REST endpoint + validation |
-| `InvestigationCommandsTest` | 1 | Shell command with all 4 providers |
+| `InvestigationCommandsTest` | 1 | Shell command with all 7 providers |
 
 ### Integration Tests (3)
 
 | Test Class | Tests | What It Covers |
 |------------|-------|----------------|
-| `InvestigationAgentIntegrationTest` | 3 | Embabel GOAP agent — full pipeline, provider ports, formatted report |
+| `InvestigationAgentIntegrationTest` | 3 | Embabel GOAP agent — full pipeline, 7 provider ports, formatted report |
 
 ### Test Fixtures
 
@@ -260,6 +287,9 @@ All test data is centralized in `src/testFixtures/java/.../fixtures/`:
 | `BlockchainSnapshotFixtures` | `aBlockchainSnapshot()` |
 | `LedgerSnapshotFixtures` | `aLedgerSnapshot()` |
 | `InvestigationReportFixtures` | `anInvestigationReport()` |
+| `WorkflowSnapshotFixtures` | `aWorkflowSnapshot()` |
+| `LogSnapshotFixtures` | `aLogSnapshot()` |
+| `TraceSnapshotFixtures` | `aTraceSnapshot()` |
 | `CompletedInvestigationFixtures` | `aCompletedInvestigation()` |
 
 ## Sample Report Output
