@@ -3,7 +3,10 @@ package com.stablebridge.txinvestigation.shell;
 import com.stablebridge.txinvestigation.domain.port.BlockchainStateProvider;
 import com.stablebridge.txinvestigation.domain.port.ComplianceStateProvider;
 import com.stablebridge.txinvestigation.domain.port.LedgerStateProvider;
+import com.stablebridge.txinvestigation.domain.port.LogSearchProvider;
 import com.stablebridge.txinvestigation.domain.port.PaymentStateProvider;
+import com.stablebridge.txinvestigation.domain.port.TraceProvider;
+import com.stablebridge.txinvestigation.domain.port.WorkflowHistoryProvider;
 import com.stablebridge.txinvestigation.domain.service.ReportFormatter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +18,10 @@ import static com.stablebridge.txinvestigation.fixtures.BlockchainSnapshotFixtur
 import static com.stablebridge.txinvestigation.fixtures.ComplianceSnapshotFixtures.aComplianceSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.InvestigationQueryFixtures.PAYMENT_ID;
 import static com.stablebridge.txinvestigation.fixtures.LedgerSnapshotFixtures.aLedgerSnapshot;
+import static com.stablebridge.txinvestigation.fixtures.LogSnapshotFixtures.aLogSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.PaymentStateFixtures.aPaymentState;
+import static com.stablebridge.txinvestigation.fixtures.TraceSnapshotFixtures.aTraceSnapshot;
+import static com.stablebridge.txinvestigation.fixtures.WorkflowSnapshotFixtures.aWorkflowSnapshot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -27,6 +33,9 @@ class InvestigationCommandsTest {
     @Mock private ComplianceStateProvider complianceStateProvider;
     @Mock private BlockchainStateProvider blockchainStateProvider;
     @Mock private LedgerStateProvider ledgerStateProvider;
+    @Mock private WorkflowHistoryProvider workflowHistoryProvider;
+    @Mock private LogSearchProvider logSearchProvider;
+    @Mock private TraceProvider traceProvider;
 
     private InvestigationCommands commands;
 
@@ -37,6 +46,9 @@ class InvestigationCommandsTest {
                 complianceStateProvider,
                 blockchainStateProvider,
                 ledgerStateProvider,
+                workflowHistoryProvider,
+                logSearchProvider,
+                traceProvider,
                 new ReportFormatter());
     }
 
@@ -47,6 +59,9 @@ class InvestigationCommandsTest {
         given(complianceStateProvider.fetchComplianceStatus(PAYMENT_ID)).willReturn(aComplianceSnapshot());
         given(blockchainStateProvider.fetchBlockchainStatus(PAYMENT_ID)).willReturn(aBlockchainSnapshot());
         given(ledgerStateProvider.fetchLedgerEntries(PAYMENT_ID)).willReturn(aLedgerSnapshot());
+        given(workflowHistoryProvider.fetchWorkflowHistory(PAYMENT_ID)).willReturn(aWorkflowSnapshot());
+        given(logSearchProvider.searchErrorLogs(PAYMENT_ID)).willReturn(aLogSnapshot());
+        given(traceProvider.fetchTrace(PAYMENT_ID)).willReturn(aTraceSnapshot());
 
         // when
         var result = commands.investigate(PAYMENT_ID, "");
@@ -57,11 +72,17 @@ class InvestigationCommandsTest {
                 .contains("BLOCKCHAIN_PENDING")
                 .contains("CLEAR")
                 .contains("PENDING")
-                .contains("Timeline");
+                .contains("Timeline")
+                .contains("wf-abc-123")
+                .contains("2 error/warn entries")
+                .contains("trace-abc-123");
 
         then(paymentStateProvider).should().fetchPaymentState(PAYMENT_ID);
         then(complianceStateProvider).should().fetchComplianceStatus(PAYMENT_ID);
         then(blockchainStateProvider).should().fetchBlockchainStatus(PAYMENT_ID);
         then(ledgerStateProvider).should().fetchLedgerEntries(PAYMENT_ID);
+        then(workflowHistoryProvider).should().fetchWorkflowHistory(PAYMENT_ID);
+        then(logSearchProvider).should().searchErrorLogs(PAYMENT_ID);
+        then(traceProvider).should().fetchTrace(PAYMENT_ID);
     }
 }

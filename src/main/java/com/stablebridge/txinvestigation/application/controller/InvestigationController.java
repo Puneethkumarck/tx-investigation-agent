@@ -3,7 +3,10 @@ package com.stablebridge.txinvestigation.application.controller;
 import com.stablebridge.txinvestigation.domain.port.BlockchainStateProvider;
 import com.stablebridge.txinvestigation.domain.port.ComplianceStateProvider;
 import com.stablebridge.txinvestigation.domain.port.LedgerStateProvider;
+import com.stablebridge.txinvestigation.domain.port.LogSearchProvider;
 import com.stablebridge.txinvestigation.domain.port.PaymentStateProvider;
+import com.stablebridge.txinvestigation.domain.port.TraceProvider;
+import com.stablebridge.txinvestigation.domain.port.WorkflowHistoryProvider;
 import com.stablebridge.txinvestigation.domain.service.ReportFormatter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,9 @@ public class InvestigationController {
     private final ComplianceStateProvider complianceStateProvider;
     private final BlockchainStateProvider blockchainStateProvider;
     private final LedgerStateProvider ledgerStateProvider;
+    private final WorkflowHistoryProvider workflowHistoryProvider;
+    private final LogSearchProvider logSearchProvider;
+    private final TraceProvider traceProvider;
     private final ReportFormatter reportFormatter;
 
     @PostMapping
@@ -34,8 +40,10 @@ public class InvestigationController {
         var complianceSnapshot = complianceStateProvider.fetchComplianceStatus(request.paymentId());
         var blockchainSnapshot = blockchainStateProvider.fetchBlockchainStatus(request.paymentId());
         var ledgerSnapshot = ledgerStateProvider.fetchLedgerEntries(request.paymentId());
+        var workflowSnapshot = workflowHistoryProvider.fetchWorkflowHistory(request.paymentId());
+        var logSnapshot = logSearchProvider.searchErrorLogs(request.paymentId());
+        var traceSnapshot = traceProvider.fetchTrace(request.paymentId());
 
-        // For the REST endpoint, we provide a summary without LLM analysis
         var response = InvestigationResponse.builder()
                 .paymentId(request.paymentId())
                 .status(paymentState.status())
@@ -44,6 +52,9 @@ public class InvestigationController {
                 .findings(List.of())
                 .timeline(List.of())
                 .recommendations(List.of())
+                .errorLogCount(logSnapshot.totalHits())
+                .traceId(traceSnapshot.traceId())
+                .workflowStatus(workflowSnapshot.status())
                 .formattedReport(reportFormatter.formatTimeline(
                         paymentState.events().stream()
                                 .map(e -> new com.stablebridge.txinvestigation.domain.model.TimelineEvent(

@@ -12,6 +12,15 @@ app:
     ledger:
       base-url: http://localhost:8084
       enabled: false
+    temporal:
+      base-url: http://localhost:7233
+      enabled: false
+    elasticsearch:
+      base-url: http://localhost:9200
+      enabled: false
+    tracing:
+      base-url: http://localhost:16686
+      enabled: false
 
 spring:
   application:

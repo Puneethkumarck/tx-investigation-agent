@@ -7,7 +7,10 @@ import static com.stablebridge.txinvestigation.fixtures.ComplianceSnapshotFixtur
 import static com.stablebridge.txinvestigation.fixtures.InvestigationQueryFixtures.anInvestigationQuery;
 import static com.stablebridge.txinvestigation.fixtures.InvestigationReportFixtures.anInvestigationReport;
 import static com.stablebridge.txinvestigation.fixtures.LedgerSnapshotFixtures.aLedgerSnapshot;
+import static com.stablebridge.txinvestigation.fixtures.LogSnapshotFixtures.aLogSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.PaymentStateFixtures.aPaymentState;
+import static com.stablebridge.txinvestigation.fixtures.TraceSnapshotFixtures.aTraceSnapshot;
+import static com.stablebridge.txinvestigation.fixtures.WorkflowSnapshotFixtures.aWorkflowSnapshot;
 
 public final class CompletedInvestigationFixtures {
 
@@ -20,6 +23,9 @@ public final class CompletedInvestigationFixtures {
                 aComplianceSnapshot(),
                 aBlockchainSnapshot(),
                 aLedgerSnapshot(),
+                aWorkflowSnapshot(),
+                aLogSnapshot(),
+                aTraceSnapshot(),
                 anInvestigationReport(),
                 "## Investigation Report: PAY-abc-123\n...");
     }

@@ -3,7 +3,10 @@ package com.stablebridge.txinvestigation.application.controller;
 import com.stablebridge.txinvestigation.domain.port.BlockchainStateProvider;
 import com.stablebridge.txinvestigation.domain.port.ComplianceStateProvider;
 import com.stablebridge.txinvestigation.domain.port.LedgerStateProvider;
+import com.stablebridge.txinvestigation.domain.port.LogSearchProvider;
 import com.stablebridge.txinvestigation.domain.port.PaymentStateProvider;
+import com.stablebridge.txinvestigation.domain.port.TraceProvider;
+import com.stablebridge.txinvestigation.domain.port.WorkflowHistoryProvider;
 import com.stablebridge.txinvestigation.domain.service.ReportFormatter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,7 +19,10 @@ import static com.stablebridge.txinvestigation.fixtures.BlockchainSnapshotFixtur
 import static com.stablebridge.txinvestigation.fixtures.ComplianceSnapshotFixtures.aComplianceSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.InvestigationQueryFixtures.PAYMENT_ID;
 import static com.stablebridge.txinvestigation.fixtures.LedgerSnapshotFixtures.aLedgerSnapshot;
+import static com.stablebridge.txinvestigation.fixtures.LogSnapshotFixtures.aLogSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.PaymentStateFixtures.aPaymentState;
+import static com.stablebridge.txinvestigation.fixtures.TraceSnapshotFixtures.aTraceSnapshot;
+import static com.stablebridge.txinvestigation.fixtures.WorkflowSnapshotFixtures.aWorkflowSnapshot;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,6 +32,9 @@ class InvestigationControllerTest {
     @Mock private ComplianceStateProvider complianceStateProvider;
     @Mock private BlockchainStateProvider blockchainStateProvider;
     @Mock private LedgerStateProvider ledgerStateProvider;
+    @Mock private WorkflowHistoryProvider workflowHistoryProvider;
+    @Mock private LogSearchProvider logSearchProvider;
+    @Mock private TraceProvider traceProvider;
 
     private WebTestClient webClient;
 
@@ -36,6 +45,9 @@ class InvestigationControllerTest {
                 complianceStateProvider,
                 blockchainStateProvider,
                 ledgerStateProvider,
+                workflowHistoryProvider,
+                logSearchProvider,
+                traceProvider,
                 new ReportFormatter());
         webClient = WebTestClient.bindToController(controller).build();
     }
@@ -47,6 +59,9 @@ class InvestigationControllerTest {
         given(complianceStateProvider.fetchComplianceStatus(PAYMENT_ID)).willReturn(aComplianceSnapshot());
         given(blockchainStateProvider.fetchBlockchainStatus(PAYMENT_ID)).willReturn(aBlockchainSnapshot());
         given(ledgerStateProvider.fetchLedgerEntries(PAYMENT_ID)).willReturn(aLedgerSnapshot());
+        given(workflowHistoryProvider.fetchWorkflowHistory(PAYMENT_ID)).willReturn(aWorkflowSnapshot());
+        given(logSearchProvider.searchErrorLogs(PAYMENT_ID)).willReturn(aLogSnapshot());
+        given(traceProvider.fetchTrace(PAYMENT_ID)).willReturn(aTraceSnapshot());
 
         // when / then
         webClient.post()
@@ -56,7 +71,10 @@ class InvestigationControllerTest {
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.paymentId").isEqualTo(PAYMENT_ID)
-                .jsonPath("$.status").isEqualTo("BLOCKCHAIN_PENDING");
+                .jsonPath("$.status").isEqualTo("BLOCKCHAIN_PENDING")
+                .jsonPath("$.workflowStatus").isEqualTo("RUNNING")
+                .jsonPath("$.errorLogCount").isEqualTo(2)
+                .jsonPath("$.traceId").isEqualTo("trace-abc-123");
     }
 
     @Test

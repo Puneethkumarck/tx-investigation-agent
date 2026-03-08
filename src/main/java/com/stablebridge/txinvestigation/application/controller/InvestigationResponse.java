@@ -17,5 +17,8 @@ public record InvestigationResponse(
         List<Finding> findings,
         List<TimelineEvent> timeline,
         List<String> recommendations,
+        int errorLogCount,
+        String traceId,
+        String workflowStatus,
         String formattedReport
 ) {}
