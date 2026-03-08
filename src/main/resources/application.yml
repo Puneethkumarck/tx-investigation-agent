@@ -8,6 +8,12 @@ app:
       base-url: ${BLOCKCHAIN_URL:http://localhost:8083}
     ledger:
       base-url: ${LEDGER_URL:http://localhost:8084}
+    temporal:
+      base-url: ${TEMPORAL_URL:http://localhost:7233}
+    elasticsearch:
+      base-url: ${ELASTICSEARCH_URL:http://localhost:9200}
+    tracing:
+      base-url: ${TRACING_URL:http://localhost:16686}
 
 spring:
   application:

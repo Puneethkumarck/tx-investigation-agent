@@ -12,11 +12,17 @@ import com.stablebridge.txinvestigation.domain.model.ComplianceSnapshot;
 import com.stablebridge.txinvestigation.domain.model.InvestigationQuery;
 import com.stablebridge.txinvestigation.domain.model.InvestigationReport;
 import com.stablebridge.txinvestigation.domain.model.LedgerSnapshot;
+import com.stablebridge.txinvestigation.domain.model.LogSnapshot;
 import com.stablebridge.txinvestigation.domain.model.PaymentState;
+import com.stablebridge.txinvestigation.domain.model.TraceSnapshot;
+import com.stablebridge.txinvestigation.domain.model.WorkflowSnapshot;
 import com.stablebridge.txinvestigation.domain.port.BlockchainStateProvider;
 import com.stablebridge.txinvestigation.domain.port.ComplianceStateProvider;
 import com.stablebridge.txinvestigation.domain.port.LedgerStateProvider;
+import com.stablebridge.txinvestigation.domain.port.LogSearchProvider;
 import com.stablebridge.txinvestigation.domain.port.PaymentStateProvider;
+import com.stablebridge.txinvestigation.domain.port.TraceProvider;
+import com.stablebridge.txinvestigation.domain.port.WorkflowHistoryProvider;
 import com.stablebridge.txinvestigation.domain.service.ReportFormatter;
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +36,9 @@ public class InvestigationAgent {
     private final ComplianceStateProvider complianceStateProvider;
     private final BlockchainStateProvider blockchainStateProvider;
     private final LedgerStateProvider ledgerStateProvider;
+    private final WorkflowHistoryProvider workflowHistoryProvider;
+    private final LogSearchProvider logSearchProvider;
+    private final TraceProvider traceProvider;
     private final ReportFormatter reportFormatter;
 
     @Action
@@ -68,11 +77,29 @@ public class InvestigationAgent {
     }
 
     @Action
+    public WorkflowSnapshot fetchWorkflowHistory(InvestigationQuery query) {
+        return workflowHistoryProvider.fetchWorkflowHistory(query.paymentId());
+    }
+
+    @Action
+    public LogSnapshot searchErrorLogs(InvestigationQuery query) {
+        return logSearchProvider.searchErrorLogs(query.paymentId());
+    }
+
+    @Action
+    public TraceSnapshot fetchTrace(InvestigationQuery query) {
+        return traceProvider.fetchTrace(query.paymentId());
+    }
+
+    @Action
     public InvestigationReport analyzeTimeline(
             PaymentState paymentState,
             ComplianceSnapshot complianceSnapshot,
             BlockchainSnapshot blockchainSnapshot,
             LedgerSnapshot ledgerSnapshot,
+            WorkflowSnapshot workflowSnapshot,
+            LogSnapshot logSnapshot,
+            TraceSnapshot traceSnapshot,
             Ai ai) {
 
         return ai
@@ -108,14 +135,35 @@ public class InvestigationAgent {
                         Net Position: %s
                         Settlement: %s
 
+                        ## Workflow History (Temporal)
+                        Workflow ID: %s
+                        Type: %s
+                        Status: %s
+                        Start: %s
+                        Attempts: %d
+                        Events: %s
+
+                        ## Error Logs (Elasticsearch)
+                        Total Hits: %d
+                        Entries: %s
+
+                        ## Distributed Trace
+                        Trace ID: %s
+                        Total Spans: %d
+                        Duration: %d ms
+                        Spans: %s
+
                         ## Instructions
                         1. Build a chronological timeline of events across all services
                         2. Identify the root cause if the payment is stuck or failed
                         3. List findings with severity (CRITICAL, HIGH, MEDIUM, LOW, INFO)
                            and category (STUCK_PAYMENT, COMPLIANCE_BLOCK, BLOCKCHAIN_DELAY,
-                           SETTLEMENT_MISMATCH, SLA_BREACH, RECONCILIATION_GAP)
+                           SETTLEMENT_MISMATCH, SLA_BREACH, RECONCILIATION_GAP,
+                           WORKFLOW_FAILURE, ERROR_SPIKE, LATENCY_ANOMALY)
                         4. Provide actionable recommendations
                         5. Set overall severity based on the most critical finding
+                        6. Correlate workflow events with log errors to identify failed activities
+                        7. Check trace spans for latency anomalies (>30s for any single span)
                         """.formatted(
                         paymentState.paymentId(),
                         paymentState.status(),
@@ -134,7 +182,19 @@ public class InvestigationAgent {
                         blockchainSnapshot.status(),
                         ledgerSnapshot.entries(),
                         ledgerSnapshot.netPosition(),
-                        ledgerSnapshot.settlementStatus()));
+                        ledgerSnapshot.settlementStatus(),
+                        workflowSnapshot.workflowId(),
+                        workflowSnapshot.workflowType(),
+                        workflowSnapshot.status(),
+                        workflowSnapshot.startTime(),
+                        workflowSnapshot.attemptCount(),
+                        workflowSnapshot.events(),
+                        logSnapshot.totalHits(),
+                        logSnapshot.entries(),
+                        traceSnapshot.traceId(),
+                        traceSnapshot.totalSpans(),
+                        traceSnapshot.durationMs(),
+                        traceSnapshot.spans()));
     }
 
     @AchievesGoal(
@@ -148,6 +208,9 @@ public class InvestigationAgent {
             ComplianceSnapshot complianceSnapshot,
             BlockchainSnapshot blockchainSnapshot,
             LedgerSnapshot ledgerSnapshot,
+            WorkflowSnapshot workflowSnapshot,
+            LogSnapshot logSnapshot,
+            TraceSnapshot traceSnapshot,
             InvestigationReport report) {
 
         var formattedBody = reportFormatter.format(report, paymentState);
@@ -158,6 +221,9 @@ public class InvestigationAgent {
                 complianceSnapshot,
                 blockchainSnapshot,
                 ledgerSnapshot,
+                workflowSnapshot,
+                logSnapshot,
+                traceSnapshot,
                 report,
                 formattedBody);
     }

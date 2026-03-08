@@ -32,6 +32,21 @@ class WebClientConfig {
         return buildWebClient(properties.ledger().baseUrl());
     }
 
+    @Bean
+    WebClient temporalWebClient(ServiceProperties properties) {
+        return buildWebClient(properties.temporal().baseUrl());
+    }
+
+    @Bean
+    WebClient elasticsearchWebClient(ServiceProperties properties) {
+        return buildWebClient(properties.elasticsearch().baseUrl());
+    }
+
+    @Bean
+    WebClient tracingWebClient(ServiceProperties properties) {
+        return buildWebClient(properties.tracing().baseUrl());
+    }
+
     private WebClient buildWebClient(String baseUrl) {
         var httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)

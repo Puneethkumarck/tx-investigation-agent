@@ -7,7 +7,10 @@ public record ServiceProperties(
         ServiceEndpoint orchestrator,
         ServiceEndpoint compliance,
         ServiceEndpoint blockchain,
-        ServiceEndpoint ledger
+        ServiceEndpoint ledger,
+        ServiceEndpoint temporal,
+        ServiceEndpoint elasticsearch,
+        ServiceEndpoint tracing
 ) {
 
     public record ServiceEndpoint(String baseUrl) {}

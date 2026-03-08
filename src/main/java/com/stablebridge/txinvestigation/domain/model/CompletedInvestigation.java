@@ -6,6 +6,9 @@ public record CompletedInvestigation(
         ComplianceSnapshot complianceSnapshot,
         BlockchainSnapshot blockchainSnapshot,
         LedgerSnapshot ledgerSnapshot,
+        WorkflowSnapshot workflowSnapshot,
+        LogSnapshot logSnapshot,
+        TraceSnapshot traceSnapshot,
         InvestigationReport report,
         String formattedBody
 ) {}
