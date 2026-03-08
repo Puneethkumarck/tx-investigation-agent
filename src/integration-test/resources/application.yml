@@ -1,0 +1,28 @@
+app:
+  services:
+    orchestrator:
+      base-url: http://localhost:8081
+      enabled: false
+    compliance:
+      base-url: http://localhost:8082
+      enabled: false
+    blockchain:
+      base-url: http://localhost:8083
+      enabled: false
+    ledger:
+      base-url: http://localhost:8084
+      enabled: false
+
+spring:
+  application:
+    name: tx-investigation-agent-test
+  main:
+    web-application-type: reactive
+  shell:
+    interactive:
+      enabled: false
+
+embabel:
+  agent:
+    shell:
+      web-application-type: reactive
