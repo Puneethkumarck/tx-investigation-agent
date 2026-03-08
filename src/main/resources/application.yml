@@ -1,0 +1,24 @@
+app:
+  services:
+    orchestrator:
+      base-url: ${ORCHESTRATOR_URL:http://localhost:8081}
+    compliance:
+      base-url: ${COMPLIANCE_URL:http://localhost:8082}
+    blockchain:
+      base-url: ${BLOCKCHAIN_URL:http://localhost:8083}
+    ledger:
+      base-url: ${LEDGER_URL:http://localhost:8084}
+
+spring:
+  application:
+    name: tx-investigation-agent
+  main:
+    web-application-type: reactive
+  shell:
+    interactive:
+      enabled: true
+
+embabel:
+  agent:
+    shell:
+      web-application-type: reactive
