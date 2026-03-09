@@ -51,8 +51,9 @@ public class InvestigationController {
         var traceSnapshot = traceProvider.fetchTrace(request.paymentId());
 
         var prompt = """
-                You are a Senior Payment Investigator. Analyze the following payment data
-                from multiple services and produce a JSON investigation report.
+                You are a Senior Blockchain Payments Engineer with deep expertise in
+                cross-border stablecoin payment infrastructure. Analyze the following payment
+                data from multiple services and produce a JSON investigation report.
 
                 ## Payment State (Orchestrator)
                 Payment ID: %s
