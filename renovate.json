@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "labels": ["dependencies"],
+  "timezone": "Europe/Berlin",
+  "schedule": ["every weekend"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "matchPackagePatterns": ["^com.embabel.agent"],
+      "groupName": "Embabel Agent",
+      "automerge": false
+    },
+    {
+      "matchPackagePatterns": ["^org.springframework"],
+      "groupName": "Spring Framework",
+      "automerge": false
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchDepTypes": ["plugin"],
+      "groupName": "Gradle plugins"
+    },
+    {
+      "matchManagers": ["gradle-wrapper"],
+      "groupName": "Gradle wrapper"
+    }
+  ]
+}
