@@ -6,6 +6,6 @@ public record InvestigationReport(
         List<TimelineEvent> timeline,
         String rootCause,
         List<Finding> findings,
-        List<String> recommendations,
+        String recommendation,
         InvestigationSeverity severity
 ) {}

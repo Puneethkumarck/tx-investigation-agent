@@ -108,7 +108,7 @@ public class InvestigationAgent {
                 .creating(InvestigationReport.class)
                 .fromPrompt("""
                         Analyze the following payment data from multiple services and produce
-                        an investigation report with timeline, root cause, findings, and recommendations.
+                        an investigation report with timeline, root cause, findings, and a single actionable recommendation.
 
                         ## Payment State (Orchestrator)
                         Payment ID: %s
@@ -155,12 +155,19 @@ public class InvestigationAgent {
 
                         ## Instructions
                         1. Build a chronological timeline of events across all services
-                        2. Identify the root cause if the payment is stuck or failed
+                        2. Identify the SINGLE root cause with specific evidence:
+                           - Which service failed, which step, what error
+                           - Example: "Custody service failed to submit tx 0xabc123 — gas price spike to 45 gwei exceeded 20 gwei limit at saga step BLOCKCHAIN_SUBMIT"
+                           - NOT vague like "blockchain error" or "transaction stuck"
                         3. List findings with severity (CRITICAL, HIGH, MEDIUM, LOW, INFO)
                            and category (STUCK_PAYMENT, COMPLIANCE_BLOCK, BLOCKCHAIN_DELAY,
                            SETTLEMENT_MISMATCH, SLA_BREACH, RECONCILIATION_GAP,
                            WORKFLOW_FAILURE, ERROR_SPIKE, LATENCY_ANOMALY)
-                        4. Provide actionable recommendations
+                        4. Provide exactly ONE recommendation that is:
+                           - A specific action an engineer can take RIGHT NOW
+                           - References the exact service, transaction ID, or endpoint involved
+                           - Example: "Resubmit transaction 0xabc123 via custody service /api/v1/retry with updated gas fee"
+                           - NOT generic advice like "monitor the situation" or "investigate further"
                         5. Set overall severity based on the most critical finding
                         6. Correlate workflow events with log errors to identify failed activities
                         7. Check trace spans for latency anomalies (>30s for any single span)

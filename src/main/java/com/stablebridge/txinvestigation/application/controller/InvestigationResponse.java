@@ -16,7 +16,7 @@ public record InvestigationResponse(
         String rootCause,
         List<Finding> findings,
         List<TimelineEvent> timeline,
-        List<String> recommendations,
+        String recommendation,
         int errorLogCount,
         String traceId,
         String workflowStatus,

@@ -32,7 +32,7 @@ class ReportFormatterTest {
                 .contains("pending for 47 minutes")
                 .contains("### Timeline")
                 .contains("### Findings")
-                .contains("### Recommendations");
+                .contains("### Recommendation");
     }
 
     @Test
@@ -68,7 +68,7 @@ class ReportFormatterTest {
     }
 
     @Test
-    void shouldIncludeNumberedRecommendations() {
+    void shouldIncludeSingleRecommendation() {
         // given
         var report = anInvestigationReport();
         var payment = aPaymentState();
@@ -78,8 +78,7 @@ class ReportFormatterTest {
 
         // then
         assertThat(result)
-                .contains("1. Monitor blockchain transaction")
-                .contains("2. Consider resubmitting")
-                .contains("3. Notify merchant");
+                .contains("### Recommendation")
+                .contains("Resubmit blockchain transaction 0xabc123def456 with higher gas fee via custody service /api/v1/retry");
     }
 }

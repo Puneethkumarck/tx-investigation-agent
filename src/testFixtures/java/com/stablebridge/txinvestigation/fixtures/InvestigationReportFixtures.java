@@ -46,11 +46,7 @@ public final class InvestigationReportFixtures {
                         new Finding(SLA_BREACH, MEDIUM,
                                 "Payment SLA of 60 minutes at risk due to blockchain delay")
                 ),
-                List.of(
-                        "Monitor blockchain transaction 0xabc123def456 for confirmation",
-                        "Consider resubmitting with higher gas fee if not confirmed within 60 minutes",
-                        "Notify merchant MCH-001 of delay via webhook"
-                ),
+                "Resubmit blockchain transaction 0xabc123def456 with higher gas fee via custody service /api/v1/retry — current submission has been pending for 47 minutes, exceeding the 30-minute SLA",
                 HIGH);
     }
 }

@@ -72,14 +72,12 @@ public class ReportFormatter {
     }
 
     private void appendRecommendations(StringBuilder sb, InvestigationReport report) {
-        if (report.recommendations().isEmpty()) {
+        if (report.recommendation() == null || report.recommendation().isBlank()) {
             return;
         }
-        sb.append("### Recommendations\n");
-        for (int i = 0; i < report.recommendations().size(); i++) {
-            sb.append("%d. %s\n".formatted(i + 1, report.recommendations().get(i)));
-        }
-        sb.append("\n");
+        sb.append("### Recommendation\n");
+        sb.append(report.recommendation());
+        sb.append("\n\n");
     }
 
     private String severityBadge(InvestigationSeverity severity) {
