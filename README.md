@@ -112,12 +112,12 @@ formatReport (@AchievesGoal) → CompletedInvestigation
 
 - **Java 25**
 - **Gradle 9.3.1**
-- An OpenAI or Anthropic API key (for LLM actions)
+- *(Optional)* An LLM API key — only needed for full GOAP agent with LLM actions
 
 ### Build & Test
 
 ```bash
-# Run all tests (43 unit + 3 integration)
+# Run all tests (43 unit + 3 integration) — no API keys needed
 ./gradlew check
 
 # Unit tests only
@@ -126,6 +126,8 @@ formatReport (@AchievesGoal) → CompletedInvestigation
 # Integration tests only
 ./gradlew integrationTest
 ```
+
+All 46 tests use mocked providers and Embabel's test harness — no live services or LLM API keys required.
 
 ### Run
 
@@ -144,50 +146,150 @@ TRACING_URL=http://localhost:16686 \
 ./gradlew bootRun
 ```
 
-### Spring Shell (Interactive CLI)
+When no live services are configured, `MockAdaptersConfig` provides realistic fallback data — the app runs fully standalone.
 
-When the application starts, you get an interactive shell:
+### Testing Levels
 
-```
-embabel> investigate PAY-abc-123
-```
+The agent can be tested at three levels, each requiring progressively more setup:
 
-This calls all 4 backend services, aggregates data, and prints a formatted investigation report.
-
-### REST API
+#### Level 1 — Automated Tests (no setup)
 
 ```bash
-# Investigate a payment
+./gradlew check
+```
+
+Runs 46 tests covering all layers: ArchUnit rules, WireMock adapter tests, agent action wiring, controller endpoints, and shell commands. Everything is mocked — no API keys or running services needed.
+
+#### Level 2 — REST API & Shell (Ollama LLM)
+
+```bash
+# Ensure Ollama is running with llama3.2
+ollama serve && ollama pull llama3.2
+./gradlew bootRun
+```
+
+The REST endpoint and Shell command call all 7 providers, send the aggregated data to the local Ollama LLM for analysis, and return a structured investigation report. Mock adapters provide realistic data when no live services are configured.
+
+**Spring Shell:**
+
+```
+embabel> investigate PAY-001
+```
+
+**REST API:**
+
+```bash
 curl -X POST http://localhost:8080/api/v1/investigations \
   -H "Content-Type: application/json" \
-  -d '{"paymentId": "PAY-abc-123"}'
+  -d '{"paymentId": "PAY-001"}'
 ```
 
-**Request:**
+**Sample LLM Response:**
 
 ```json
 {
-  "paymentId": "PAY-abc-123",
-  "merchantId": "MCH-001"
-}
-```
-
-**Response:**
-
-```json
-{
-  "paymentId": "PAY-abc-123",
+  "paymentId": "PAY-001",
   "status": "BLOCKCHAIN_PENDING",
-  "severity": null,
-  "rootCause": "Data collected — use GOAP agent for full LLM analysis",
-  "findings": [],
-  "timeline": [],
-  "recommendations": [],
-  "formattedReport": "### Timeline\n| Time | Service | Event | Status |\n..."
+  "severity": "CRITICAL",
+  "rootCause": "Blockchain custody error",
+  "findings": [
+    {
+      "category": "STUCK_PAYMENT",
+      "severity": "CRITICAL",
+      "description": "Error Spike detected — retry pending"
+    },
+    {
+      "category": "SLA_BREACH",
+      "severity": "CRITICAL",
+      "description": "Transaction confirmation timeout approaching SLA"
+    },
+    {
+      "category": "LATENCY_ANOMALY",
+      "severity": "HIGH",
+      "description": "Gas price spike detected — retry pending"
+    }
+  ],
+  "timeline": [
+    {
+      "timestamp": "2026-03-09T04:26:06Z",
+      "service": "Payment Orchestration",
+      "description": "Workflow started",
+      "status": "RUNNING"
+    },
+    {
+      "timestamp": "2026-03-09T04:41:06Z",
+      "service": "Compliance Travel Rule",
+      "description": "Compliance check completed",
+      "status": "COMPLETED"
+    },
+    {
+      "timestamp": "2026-03-09T04:42:06Z",
+      "service": "Fiat on Ramp",
+      "description": "Fiat collection completed",
+      "status": "COMPLETED"
+    },
+    {
+      "timestamp": "2026-03-09T05:11:06Z",
+      "service": "Blockchain Custody",
+      "description": "Blockchain submission pending",
+      "status": "PENDING"
+    }
+  ],
+  "recommendations": [
+    "Investigate and retry transaction",
+    "Monitor gas prices and SLAs",
+    "Optimize payment workflow for latency"
+  ],
+  "errorLogCount": 2,
+  "traceId": "trace-mock-001",
+  "workflowStatus": "RUNNING",
+  "formattedReport": "## Investigation Report: PAY-001 ..."
 }
 ```
 
-> **Note:** The REST endpoint provides a lightweight summary without LLM analysis. For full AI-powered investigation with root cause analysis, use the GOAP agent via Spring Shell or the Embabel platform.
+#### Level 3 — Full GOAP Agent with LLM
+
+Embabel bundles Spring AI but **no LLM provider**. To run the LLM-powered `parseQuery` and `analyzeTimeline` actions, add an Embabel LLM starter to `build.gradle.kts`:
+
+**Option A — OpenAI:**
+
+```kotlin
+implementation("com.embabel.agent:embabel-agent-starter-openai:$embabelVersion")
+```
+
+```bash
+OPENAI_API_KEY=sk-... ./gradlew bootRun
+```
+
+**Option B — Anthropic (Claude):**
+
+```kotlin
+implementation("com.embabel.agent:embabel-agent-starter-anthropic:$embabelVersion")
+```
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... ./gradlew bootRun
+```
+
+**Option C — Ollama (free, local, no API key):**
+
+```kotlin
+implementation("com.embabel.agent:embabel-agent-starter-ollama:$embabelVersion")
+```
+
+```yaml
+# Add to application.yml
+embabel:
+  models:
+    default-llm: qwen2.5:latest  # or llama3.2:latest
+```
+
+```bash
+ollama serve && ollama pull qwen2.5
+./gradlew bootRun
+```
+
+With an LLM provider configured, the full GOAP pipeline runs: `parseQuery` (LLM) → 7 parallel fetches → `analyzeTimeline` (LLM with Senior Investigator persona) → `formatReport`.
 
 ## Configuration
 
@@ -294,28 +396,33 @@ All test data is centralized in `src/testFixtures/java/.../fixtures/`:
 
 ## Sample Report Output
 
-```markdown
-## Investigation Report: PAY-abc-123
+The `formattedReport` field in the API response contains a markdown-rendered investigation report. Here is a real example generated by the Ollama `llama3.2:latest` model:
 
-**Status:** BLOCKCHAIN_PENDING | **Severity:** HIGH
+```markdown
+## Investigation Report: PAY-001
+
+**Status:** BLOCKCHAIN_PENDING | **Severity:** CRITICAL
 
 ### Root Cause
-Blockchain transaction pending — 2 confirmations received, waiting for finality threshold
+Blockchain custody error
 
 ### Timeline
 | Time | Service | Event | Status |
 |------|---------|-------|--------|
-| 2026-03-08 16:00:00 UTC | S1 Orchestrator | Compliance check passed | COMPLETED |
-| 2026-03-08 16:15:00 UTC | S1 Orchestrator | ACH debit confirmed | COMPLETED |
-| 2026-03-08 16:30:00 UTC | S1 Orchestrator | Transaction submitted to Base | PENDING |
+| 2026-03-09 04:26:06 UTC | Payment Orchestration | Workflow started | RUNNING |
+| 2026-03-09 04:41:06 UTC | Compliance Travel Rule | Compliance check completed | COMPLETED |
+| 2026-03-09 04:42:06 UTC | Fiat on Ramp | Fiat collection completed | COMPLETED |
+| 2026-03-09 05:11:06 UTC | Blockchain Custody | Blockchain submission pending | PENDING |
 
 ### Findings
-- [HIGH] **[BLOCKCHAIN_DELAY]** Transaction has only 2 of 12 required confirmations after 30 minutes
+- [CRITICAL] **[STUCK_PAYMENT]** Error Spike detected — retry pending
+- [CRITICAL] **[SLA_BREACH]** Transaction confirmation timeout approaching SLA
+- [HIGH] **[LATENCY_ANOMALY]** Gas price spike detected — retry pending
 
 ### Recommendations
-1. Monitor Base network for confirmation progress
-2. Alert if no progress within 60 minutes
-3. Prepare manual intervention workflow if stuck beyond 2 hours
+1. Investigate and retry transaction
+2. Monitor gas prices and SLAs
+3. Optimize payment workflow for latency
 
 ---
 *Generated by TX Investigation Agent (Embabel + Spring AI)*

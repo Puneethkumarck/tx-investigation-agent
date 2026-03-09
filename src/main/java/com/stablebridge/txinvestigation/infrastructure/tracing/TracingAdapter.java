@@ -20,7 +20,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.services.tracing.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.services.tracing.enabled", havingValue = "true", matchIfMissing = false)
 class TracingAdapter implements TraceProvider {
 
     private final WebClient tracingWebClient;

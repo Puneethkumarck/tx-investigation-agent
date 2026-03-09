@@ -52,6 +52,9 @@ dependencies {
     implementation("com.embabel.agent:embabel-agent-starter:$embabelVersion")
     implementation("com.embabel.agent:embabel-agent-starter-shell:$embabelVersion")
 
+    // LLM provider for Embabel GOAP agent (Ollama — local, free)
+    implementation("com.embabel.agent:embabel-agent-starter-ollama:$embabelVersion")
+
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-json")

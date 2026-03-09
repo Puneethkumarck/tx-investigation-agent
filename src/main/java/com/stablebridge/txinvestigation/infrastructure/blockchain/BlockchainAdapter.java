@@ -18,7 +18,7 @@ import java.time.Instant;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.services.blockchain.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.services.blockchain.enabled", havingValue = "true", matchIfMissing = false)
 class BlockchainAdapter implements BlockchainStateProvider {
 
     private final WebClient blockchainWebClient;

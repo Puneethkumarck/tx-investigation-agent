@@ -1,5 +1,6 @@
 package com.stablebridge.txinvestigation.application.controller;
 
+import com.stablebridge.txinvestigation.domain.model.InvestigationReport;
 import com.stablebridge.txinvestigation.domain.port.BlockchainStateProvider;
 import com.stablebridge.txinvestigation.domain.port.ComplianceStateProvider;
 import com.stablebridge.txinvestigation.domain.port.LedgerStateProvider;
@@ -13,17 +14,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static com.stablebridge.txinvestigation.fixtures.BlockchainSnapshotFixtures.aBlockchainSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.ComplianceSnapshotFixtures.aComplianceSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.InvestigationQueryFixtures.PAYMENT_ID;
+import static com.stablebridge.txinvestigation.fixtures.InvestigationReportFixtures.anInvestigationReport;
 import static com.stablebridge.txinvestigation.fixtures.LedgerSnapshotFixtures.aLedgerSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.LogSnapshotFixtures.aLogSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.PaymentStateFixtures.aPaymentState;
 import static com.stablebridge.txinvestigation.fixtures.TraceSnapshotFixtures.aTraceSnapshot;
 import static com.stablebridge.txinvestigation.fixtures.WorkflowSnapshotFixtures.aWorkflowSnapshot;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class InvestigationControllerTest {
@@ -35,11 +41,22 @@ class InvestigationControllerTest {
     @Mock private WorkflowHistoryProvider workflowHistoryProvider;
     @Mock private LogSearchProvider logSearchProvider;
     @Mock private TraceProvider traceProvider;
+    @Mock private ChatClient.Builder chatClientBuilder;
 
     private WebTestClient webClient;
 
     @BeforeEach
     void setUp() {
+        var chatClient = mock(ChatClient.class);
+        var promptRequest = mock(ChatClient.ChatClientRequestSpec.class);
+        var callResponse = mock(ChatClient.CallResponseSpec.class);
+
+        lenient().when(chatClientBuilder.build()).thenReturn(chatClient);
+        lenient().when(chatClient.prompt()).thenReturn(promptRequest);
+        lenient().when(promptRequest.user(anyString())).thenReturn(promptRequest);
+        lenient().when(promptRequest.call()).thenReturn(callResponse);
+        lenient().when(callResponse.entity(InvestigationReport.class)).thenReturn(anInvestigationReport());
+
         var controller = new InvestigationController(
                 paymentStateProvider,
                 complianceStateProvider,
@@ -48,7 +65,8 @@ class InvestigationControllerTest {
                 workflowHistoryProvider,
                 logSearchProvider,
                 traceProvider,
-                new ReportFormatter());
+                new ReportFormatter(),
+                chatClientBuilder);
         webClient = WebTestClient.bindToController(controller).build();
     }
 
@@ -72,6 +90,8 @@ class InvestigationControllerTest {
                 .expectBody()
                 .jsonPath("$.paymentId").isEqualTo(PAYMENT_ID)
                 .jsonPath("$.status").isEqualTo("BLOCKCHAIN_PENDING")
+                .jsonPath("$.severity").isEqualTo("HIGH")
+                .jsonPath("$.rootCause").isNotEmpty()
                 .jsonPath("$.workflowStatus").isEqualTo("RUNNING")
                 .jsonPath("$.errorLogCount").isEqualTo(2)
                 .jsonPath("$.traceId").isEqualTo("trace-abc-123");

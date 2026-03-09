@@ -21,7 +21,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.services.compliance.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.services.compliance.enabled", havingValue = "true", matchIfMissing = false)
 class ComplianceAdapter implements ComplianceStateProvider {
 
     private final WebClient complianceWebClient;

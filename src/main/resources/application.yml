@@ -25,6 +25,8 @@ spring:
       enabled: true
 
 embabel:
+  models:
+    default-llm: llama3.2:latest
   agent:
     shell:
       web-application-type: reactive

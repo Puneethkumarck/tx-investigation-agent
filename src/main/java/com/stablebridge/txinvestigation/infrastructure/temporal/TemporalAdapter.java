@@ -20,7 +20,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.services.temporal.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.services.temporal.enabled", havingValue = "true", matchIfMissing = false)
 class TemporalAdapter implements WorkflowHistoryProvider {
 
     private final WebClient temporalWebClient;

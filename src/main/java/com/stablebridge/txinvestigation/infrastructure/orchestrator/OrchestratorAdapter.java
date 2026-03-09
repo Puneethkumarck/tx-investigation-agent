@@ -21,7 +21,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.services.orchestrator.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.services.orchestrator.enabled", havingValue = "true", matchIfMissing = false)
 class OrchestratorAdapter implements PaymentStateProvider {
 
     private final WebClient orchestratorWebClient;

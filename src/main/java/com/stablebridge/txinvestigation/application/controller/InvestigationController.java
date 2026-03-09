@@ -1,5 +1,7 @@
 package com.stablebridge.txinvestigation.application.controller;
 
+import com.stablebridge.txinvestigation.domain.model.InvestigationReport;
+import com.stablebridge.txinvestigation.domain.model.TimelineEvent;
 import com.stablebridge.txinvestigation.domain.port.BlockchainStateProvider;
 import com.stablebridge.txinvestigation.domain.port.ComplianceStateProvider;
 import com.stablebridge.txinvestigation.domain.port.LedgerStateProvider;
@@ -10,6 +12,8 @@ import com.stablebridge.txinvestigation.domain.port.WorkflowHistoryProvider;
 import com.stablebridge.txinvestigation.domain.service.ReportFormatter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/investigations")
 @RequiredArgsConstructor
@@ -31,6 +36,7 @@ public class InvestigationController {
     private final LogSearchProvider logSearchProvider;
     private final TraceProvider traceProvider;
     private final ReportFormatter reportFormatter;
+    private final ChatClient.Builder chatClientBuilder;
 
     @PostMapping
     public ResponseEntity<InvestigationResponse> investigate(
@@ -44,22 +50,121 @@ public class InvestigationController {
         var logSnapshot = logSearchProvider.searchErrorLogs(request.paymentId());
         var traceSnapshot = traceProvider.fetchTrace(request.paymentId());
 
+        var prompt = """
+                You are a Senior Payment Investigator. Analyze the following payment data
+                from multiple services and produce a JSON investigation report.
+
+                ## Payment State (Orchestrator)
+                Payment ID: %s
+                Status: %s
+                Saga Step: %s
+                Workflow ID: %s
+                Events: %s
+
+                ## Compliance Status
+                Screening: %s
+                Travel Rule: %s
+                Risk Score: %.2f
+                Decisions: %s
+
+                ## Blockchain Status
+                TX Hash: %s
+                Chain: %s
+                Confirmations: %d
+                Amount: %s %s
+                Status: %s
+
+                ## Ledger Status
+                Entries: %s
+                Net Position: %s
+                Settlement: %s
+
+                ## Workflow History (Temporal)
+                Workflow ID: %s
+                Type: %s
+                Status: %s
+                Start: %s
+                Attempts: %d
+                Events: %s
+
+                ## Error Logs (Elasticsearch)
+                Total Hits: %d
+                Entries: %s
+
+                ## Distributed Trace
+                Trace ID: %s
+                Total Spans: %d
+                Duration: %d ms
+                Spans: %s
+
+                ## Instructions
+                1. Build a chronological timeline of events across all services
+                2. Identify the root cause if the payment is stuck or failed
+                3. List findings with severity (CRITICAL, HIGH, MEDIUM, LOW, INFO)
+                   and category (STUCK_PAYMENT, COMPLIANCE_BLOCK, BLOCKCHAIN_DELAY,
+                   SETTLEMENT_MISMATCH, SLA_BREACH, RECONCILIATION_GAP,
+                   WORKFLOW_FAILURE, ERROR_SPIKE, LATENCY_ANOMALY)
+                4. Provide actionable recommendations
+                5. Set overall severity based on the most critical finding
+                6. Correlate workflow events with log errors to identify failed activities
+                7. Check trace spans for latency anomalies (>30s for any single span)
+                """.formatted(
+                paymentState.paymentId(),
+                paymentState.status(),
+                paymentState.sagaStep(),
+                paymentState.workflowId(),
+                paymentState.events(),
+                complianceSnapshot.screeningResult(),
+                complianceSnapshot.travelRuleStatus(),
+                complianceSnapshot.riskScore(),
+                complianceSnapshot.decisions(),
+                blockchainSnapshot.txHash(),
+                blockchainSnapshot.chain(),
+                blockchainSnapshot.confirmations(),
+                blockchainSnapshot.amount(),
+                blockchainSnapshot.currency(),
+                blockchainSnapshot.status(),
+                ledgerSnapshot.entries(),
+                ledgerSnapshot.netPosition(),
+                ledgerSnapshot.settlementStatus(),
+                workflowSnapshot.workflowId(),
+                workflowSnapshot.workflowType(),
+                workflowSnapshot.status(),
+                workflowSnapshot.startTime(),
+                workflowSnapshot.attemptCount(),
+                workflowSnapshot.events(),
+                logSnapshot.totalHits(),
+                logSnapshot.entries(),
+                traceSnapshot.traceId(),
+                traceSnapshot.totalSpans(),
+                traceSnapshot.durationMs(),
+                traceSnapshot.spans());
+
+        log.info("Sending investigation data to LLM for analysis of payment {}", request.paymentId());
+
+        var report = chatClientBuilder.build()
+                .prompt()
+                .user(prompt)
+                .call()
+                .entity(InvestigationReport.class);
+
+        log.info("LLM analysis complete for payment {} — severity: {}", request.paymentId(),
+                report.severity());
+
+        var formattedReport = reportFormatter.format(report, paymentState);
+
         var response = InvestigationResponse.builder()
                 .paymentId(request.paymentId())
                 .status(paymentState.status())
-                .severity(null)
-                .rootCause("Data collected — use GOAP agent for full LLM analysis")
-                .findings(List.of())
-                .timeline(List.of())
-                .recommendations(List.of())
+                .severity(report.severity())
+                .rootCause(report.rootCause())
+                .findings(report.findings())
+                .timeline(report.timeline())
+                .recommendations(report.recommendations())
                 .errorLogCount(logSnapshot.totalHits())
                 .traceId(traceSnapshot.traceId())
                 .workflowStatus(workflowSnapshot.status())
-                .formattedReport(reportFormatter.formatTimeline(
-                        paymentState.events().stream()
-                                .map(e -> new com.stablebridge.txinvestigation.domain.model.TimelineEvent(
-                                        e.timestamp(), "S1 Orchestrator", e.detail(), e.status()))
-                                .toList()))
+                .formattedReport(formattedReport)
                 .build();
 
         return ResponseEntity.ok(response);

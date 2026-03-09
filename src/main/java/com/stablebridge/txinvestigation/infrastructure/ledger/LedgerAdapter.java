@@ -22,7 +22,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.services.ledger.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.services.ledger.enabled", havingValue = "true", matchIfMissing = false)
 class LedgerAdapter implements LedgerStateProvider {
 
     private final WebClient ledgerWebClient;
