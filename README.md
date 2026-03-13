@@ -6,6 +6,12 @@ An AI-powered payment investigation agent built with [Embabel Agent Framework](h
 
 The agent follows **hexagonal architecture** with strict layer isolation enforced by ArchUnit:
 
+<p align="center">
+  <img src="docs/diagrams/system-architecture.svg" alt="System Architecture" />
+</p>
+
+### Package Structure
+
 ```
 src/main/java/com/stablebridge/txinvestigation/
 ├── agent/                          # Embabel GOAP agent layer
@@ -35,6 +41,10 @@ src/main/java/com/stablebridge/txinvestigation/
 
 ### Layer Rules (ArchUnit-enforced)
 
+<p align="center">
+  <img src="docs/diagrams/hexagonal-architecture.svg" alt="Hexagonal Architecture" />
+</p>
+
 | Rule | Description |
 |------|-------------|
 | Domain isolation | Domain must not depend on agent, application, infrastructure, or shell |
@@ -47,26 +57,9 @@ src/main/java/com/stablebridge/txinvestigation/
 
 The Embabel agent uses [Goal-Oriented Action Planning](https://embabel.com/docs/snapshot/concepts/goap/) to chain 10 actions:
 
-```
-UserInput
-  │
-  ▼
-parseQuery (LLM)            → InvestigationQuery
-  │
-  ├─► fetchPaymentState      → PaymentState          (S1 Orchestrator)
-  ├─► fetchComplianceStatus  → ComplianceSnapshot    (S2 Compliance)
-  ├─► fetchBlockchainStatus  → BlockchainSnapshot    (S4 Blockchain)
-  ├─► fetchLedgerEntries     → LedgerSnapshot        (S7 Ledger)
-  ├─► fetchWorkflowHistory   → WorkflowSnapshot      (Temporal)
-  ├─► searchErrorLogs        → LogSnapshot           (Elasticsearch)
-  └─► fetchTrace             → TraceSnapshot         (Jaeger)
-  │
-  ▼
-analyzeTimeline (LLM)       → InvestigationReport    (Senior Investigator persona)
-  │
-  ▼
-formatReport (@AchievesGoal) → CompletedInvestigation
-```
+<p align="center">
+  <img src="docs/diagrams/goap-pipeline.svg" alt="GOAP Pipeline" />
+</p>
 
 - **`parseQuery`** — LLM extracts payment ID, merchant ID, and corridor from natural language input
 - **7 fetch actions** — parallel data collection from microservice APIs + observability systems via hexagonal ports
@@ -74,6 +67,10 @@ formatReport (@AchievesGoal) → CompletedInvestigation
 - **`formatReport`** — assembles the final report with markdown timeline, findings, and recommendations
 
 ### Domain Model
+
+<p align="center">
+  <img src="docs/diagrams/domain-model.svg" alt="Domain Model" />
+</p>
 
 | Type | Purpose |
 |------|---------|
@@ -345,6 +342,10 @@ app:
 When no live service is available, `MockAdaptersConfig` provides fallback implementations via `@ConditionalOnMissingBean`. These return realistic sample data so the agent can run standalone for development and demos.
 
 ### Adapter Activation
+
+<p align="center">
+  <img src="docs/diagrams/adapter-activation.svg" alt="Adapter Activation" />
+</p>
 
 | Condition | Adapter |
 |-----------|---------|

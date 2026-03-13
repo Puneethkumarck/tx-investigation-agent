@@ -1,0 +1,91 @@
+classDiagram
+    class CompletedInvestigation {
+        InvestigationQuery query
+        PaymentState paymentState
+        ComplianceSnapshot complianceSnapshot
+        BlockchainSnapshot blockchainSnapshot
+        LedgerSnapshot ledgerSnapshot
+        WorkflowSnapshot workflowSnapshot
+        LogSnapshot logSnapshot
+        TraceSnapshot traceSnapshot
+        InvestigationReport report
+        String formattedBody
+    }
+
+    class PaymentState {
+        String paymentId
+        PaymentStatus status
+        String sagaStep
+        List~SagaEvent~ events
+    }
+
+    class ComplianceSnapshot {
+        ScreeningResult screeningResult
+        String travelRuleStatus
+        List~ComplianceDecision~ decisions
+    }
+
+    class BlockchainSnapshot {
+        String txHash
+        String chain
+        int confirmations
+        String amount
+    }
+
+    class LedgerSnapshot {
+        List~LedgerEntry~ entries
+        String netPosition
+        String settlementStatus
+    }
+
+    class WorkflowSnapshot {
+        String workflowId
+        String status
+        List~WorkflowEvent~ events
+    }
+
+    class LogSnapshot {
+        int totalHits
+        List~LogEntry~ entries
+    }
+
+    class TraceSnapshot {
+        String traceId
+        int totalSpans
+        List~TraceSpan~ spans
+    }
+
+    class InvestigationReport {
+        List~TimelineEvent~ timeline
+        String rootCause
+        List~Finding~ findings
+        String recommendation
+        InvestigationSeverity severity
+    }
+
+    CompletedInvestigation --> InvestigationQuery
+    CompletedInvestigation --> PaymentState
+    CompletedInvestigation --> ComplianceSnapshot
+    CompletedInvestigation --> BlockchainSnapshot
+    CompletedInvestigation --> LedgerSnapshot
+    CompletedInvestigation --> WorkflowSnapshot
+    CompletedInvestigation --> LogSnapshot
+    CompletedInvestigation --> TraceSnapshot
+    CompletedInvestigation --> InvestigationReport
+    PaymentState --> "0..*" SagaEvent
+    ComplianceSnapshot --> "0..*" ComplianceDecision
+    LedgerSnapshot --> "0..*" LedgerEntry
+    WorkflowSnapshot --> "0..*" WorkflowEvent
+    LogSnapshot --> "0..*" LogEntry
+    TraceSnapshot --> "0..*" TraceSpan
+    InvestigationReport --> "0..*" TimelineEvent
+    InvestigationReport --> "0..*" Finding
+
+    class SagaEvent { }
+    class ComplianceDecision { }
+    class LedgerEntry { }
+    class WorkflowEvent { }
+    class LogEntry { }
+    class TraceSpan { }
+    class TimelineEvent { }
+    class Finding { }

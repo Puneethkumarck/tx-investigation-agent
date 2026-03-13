@@ -1,0 +1,18 @@
+flowchart TD
+    PROP{"app.services.name\n.enabled=true?"}
+
+    PROP -->|Yes| REAL["Real Adapter\n@ConditionalOnProperty"]
+    PROP -->|No / Missing| MOCK["MockAdaptersConfig\n@ConditionalOnMissingBean\n(realistic sample data)"]
+
+    REAL --> WC["WebClient\nJdkClientHttpConnector"]
+    MOCK --> FALLBACK["In-memory mock response"]
+
+    WC --> SVC["External Microservice"]
+
+    WC -->|4xx| PNF["PaymentNotFoundException"]
+    WC -->|5xx| SUE["ServiceUnavailableException"]
+    WC -->|"404 on ES/Tracing"| EMPTY["Empty snapshot\n(graceful degradation)"]
+
+    style PROP fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style REAL fill:#e8f5e9,stroke:#2e7d32
+    style MOCK fill:#e3f2fd,stroke:#1565c0

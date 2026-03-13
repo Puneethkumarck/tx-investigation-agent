@@ -1,0 +1,78 @@
+graph TB
+    subgraph Clients["Clients"]
+        REST["REST API\nPOST /api/v1/investigations"]
+        SHELL["Spring Shell\ninvestigate PAY-001"]
+    end
+
+    subgraph Agent["TX Investigation Agent"]
+        direction TB
+        subgraph App["Application Layer"]
+            CTRL["InvestigationController"]
+            CMD["InvestigationCommands"]
+        end
+
+        subgraph AgentLayer["Agent Layer - Embabel GOAP"]
+            IA["InvestigationAgent\n10 GOAP Actions"]
+            PERSONA["Senior Blockchain\nPayments Engineer\nPersona"]
+        end
+
+        subgraph Domain["Domain Layer - Pure Java"]
+            direction TB
+            MODELS["19 Records - 6 Enums - 2 Exceptions"]
+            PORTS["7 Port Interfaces"]
+            SVC["ReportFormatter"]
+        end
+
+        subgraph Infra["Infrastructure Layer"]
+            direction TB
+            subgraph Adapters["7 Adapters - WebClient"]
+                A1["OrchestratorAdapter"]
+                A2["ComplianceAdapter"]
+                A3["BlockchainAdapter"]
+                A4["LedgerAdapter"]
+                A5["TemporalAdapter"]
+                A6["ElasticsearchAdapter"]
+                A7["TracingAdapter"]
+            end
+            MOCK["MockAdaptersConfig\nConditionalOnMissingBean"]
+            CFG["ServiceProperties\nWebClientConfig\nChatModelConfig"]
+        end
+    end
+
+    subgraph External["External Microservices"]
+        S1["S1 Payment\nOrchestrator"]
+        S2["S2 Compliance\nTravel Rule"]
+        S4["S4 Blockchain\nCustody"]
+        S7["S7 Ledger"]
+        TMP["Temporal\nWorkflow Engine"]
+        ES["Elasticsearch"]
+        JAE["Jaeger\nTracing"]
+    end
+
+    LLM["Ollama\nllama3.2:latest"]
+
+    REST --> CTRL
+    SHELL --> CMD
+    CTRL --> AgentLayer
+    CMD --> AgentLayer
+    IA --> PERSONA
+    IA --> PORTS
+    PORTS --> Adapters
+    PORTS -.-> MOCK
+    SVC --> MODELS
+    A1 --> S1
+    A2 --> S2
+    A3 --> S4
+    A4 --> S7
+    A5 --> TMP
+    A6 --> ES
+    A7 --> JAE
+    AgentLayer --> LLM
+    CTRL --> LLM
+
+    style Domain fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AgentLayer fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style App fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Infra fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style External fill:#f3e5f5,stroke:#6a1b9a,stroke-width:1px
+    style LLM fill:#fff9c4,stroke:#f57f17,stroke-width:2px

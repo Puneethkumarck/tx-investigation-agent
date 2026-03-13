@@ -1,0 +1,30 @@
+flowchart TD
+    UI["UserInput\n(natural language or payment ID)"]
+    PQ["parseQuery\nLLM"]
+    IQ["InvestigationQuery\npaymentId, merchantId?, corridor?"]
+
+    UI --> PQ --> IQ
+
+    IQ --> F1 & F2 & F3 & F4 & F5 & F6 & F7
+
+    subgraph Parallel["7 Parallel Fetches (no LLM)"]
+        F1["fetchPaymentState\n-> PaymentState"]
+        F2["fetchComplianceStatus\n-> ComplianceSnapshot"]
+        F3["fetchBlockchainStatus\n-> BlockchainSnapshot"]
+        F4["fetchLedgerEntries\n-> LedgerSnapshot"]
+        F5["fetchWorkflowHistory\n-> WorkflowSnapshot"]
+        F6["searchErrorLogs\n-> LogSnapshot"]
+        F7["fetchTrace\n-> TraceSnapshot"]
+    end
+
+    F1 & F2 & F3 & F4 & F5 & F6 & F7 --> AT
+
+    AT["analyzeTimeline\nLLM + Persona\n-> InvestigationReport"]
+    FR["formatReport\n@AchievesGoal\n-> CompletedInvestigation"]
+
+    AT --> FR
+
+    style PQ fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style AT fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style Parallel fill:#e3f2fd,stroke:#1565c0,stroke-width:1px
+    style FR fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
