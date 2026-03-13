@@ -13,10 +13,6 @@ An AI-powered payment investigation agent built with [Embabel Agent Framework](h
 
 The agent follows **hexagonal architecture** with strict layer isolation enforced by ArchUnit:
 
-<p align="center">
-  <img src="docs/diagrams/system-architecture.svg" alt="System Architecture" />
-</p>
-
 ### Package Structure
 
 ```
