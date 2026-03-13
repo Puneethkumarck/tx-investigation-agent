@@ -48,10 +48,6 @@ src/main/java/com/stablebridge/txinvestigation/
 
 ### Layer Rules (ArchUnit-enforced)
 
-<p align="center">
-  <img src="docs/diagrams/hexagonal-architecture.svg" alt="Hexagonal Architecture" />
-</p>
-
 | Rule | Description |
 |------|-------------|
 | Domain isolation | Domain must not depend on agent, application, infrastructure, or shell |
