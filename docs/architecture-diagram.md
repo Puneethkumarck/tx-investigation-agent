@@ -118,46 +118,7 @@ flowchart TD
     style FR fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
 
-## 3. Hexagonal Architecture (Dependency Rules)
-
-```mermaid
-graph LR
-    subgraph Outer["Driving Side"]
-        REST["REST Controller"]
-        SHELL["Shell Command"]
-    end
-
-    subgraph Core["Domain Core (no framework deps)"]
-        direction TB
-        PORTS_IN["Ports (7 interfaces)"]
-        MODEL["Model (19 records, 6 enums)"]
-        SERVICE["ReportFormatter"]
-    end
-
-    subgraph Driven["Driven Side"]
-        direction TB
-        ORC["OrchestratorAdapter"]
-        CMP["ComplianceAdapter"]
-        BLK["BlockchainAdapter"]
-        LDG["LedgerAdapter"]
-        TMP["TemporalAdapter"]
-        ELS["ElasticsearchAdapter"]
-        TRC["TracingAdapter"]
-    end
-
-    REST -->|depends on| Core
-    SHELL -->|depends on| Core
-    Driven -->|implements| PORTS_IN
-
-    Core x--x|"❌ must NOT depend on"| Driven
-    Core x--x|"❌ must NOT depend on"| Outer
-
-    style Core fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
-    style Outer fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style Driven fill:#fce4ec,stroke:#c62828,stroke-width:2px
-```
-
-## 4. Adapter Activation Strategy
+## 3. Adapter Activation Strategy
 
 ```mermaid
 flowchart TD
@@ -180,7 +141,7 @@ flowchart TD
     style MOCK fill:#e3f2fd,stroke:#1565c0
 ```
 
-## 5. Test Pyramid
+## 4. Test Pyramid
 
 ```mermaid
 graph BT
@@ -203,7 +164,7 @@ graph BT
     style Integration fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
 ```
 
-## 6. Domain Model Relationships
+## 5. Domain Model Relationships
 
 ```mermaid
 classDiagram
