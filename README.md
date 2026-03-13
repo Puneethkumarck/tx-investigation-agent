@@ -46,14 +46,6 @@ src/main/java/com/stablebridge/txinvestigation/
     └── InvestigationCommands.java
 ```
 
-### Layer Rules (ArchUnit-enforced)
-
-| Rule | Description |
-|------|-------------|
-| Domain isolation | Domain must not depend on agent, application, infrastructure, or shell |
-| No Spring Web in domain | Domain must not use WebClient or Spring Web annotations |
-| Infrastructure isolation | Infrastructure must not depend on agent layer |
-
 ## How It Works
 
 ### GOAP Agent Pipeline
