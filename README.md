@@ -5,7 +5,7 @@
 [![Embabel](https://img.shields.io/badge/Embabel%20Agent-0.3.4-4A90D9)](https://embabel.com)
 [![Gradle](https://img.shields.io/badge/Gradle-9.3.1-02303A?logo=gradle&logoColor=white)](https://gradle.org/)
 [![Renovate](https://img.shields.io/badge/Renovate-enabled-1A1F6C?logo=renovatebot&logoColor=white)](https://renovatebot.com/)
-[![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An AI-powered payment investigation agent built with [Embabel Agent Framework](https://embabel.com) and Spring Boot. It correlates data from 7 sources — microservice APIs, Temporal workflow history, Elasticsearch logs, and Jaeger distributed traces — to produce structured investigation reports for cross-border stablecoin payments.
 
@@ -487,4 +487,4 @@ tx-investigation-agent/
 
 ## License
 
-Proprietary - StableBridge
+MIT - see [LICENSE](LICENSE)
